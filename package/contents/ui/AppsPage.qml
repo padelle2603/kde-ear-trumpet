@@ -87,12 +87,12 @@ Item {
     readonly property bool masterMuted: masterSink ? masterSink.muted : false
 
     readonly property int appRowHeight: 56 + Kirigami.Units.smallSpacing
-    readonly property int contentHeight: 64
-        + (sinkInputModel.count > 0 ? (1 + Kirigami.Units.smallSpacing) : 0)
-        + (sinkInputModel.count * appRowHeight)
+    readonly property int naturalHeight: masterHeader.implicitHeight
+        + (divider.visible ? (divider.height + Kirigami.Units.smallSpacing) : 0)
+        + (sinkInputModel.count > 0 ? (listView.contentHeight + Kirigami.Units.smallSpacing) : 0)
         + (Kirigami.Units.smallSpacing * 2)
 
-    implicitHeight: contentHeight
+    implicitHeight: naturalHeight
 
     ColumnLayout {
         anchors.fill: parent
@@ -190,6 +190,7 @@ Item {
         }
 
         Rectangle {
+            id: divider
             Layout.fillWidth: true
             Layout.leftMargin: Kirigami.Units.smallSpacing
             Layout.rightMargin: Kirigami.Units.smallSpacing
@@ -216,7 +217,21 @@ Item {
 
                 width: ListView.view ? ListView.view.width : 0
                 appName: (stream && (stream.properties["application.name"] || stream.name || stream.description)) || model.Name || i18n("Unknown App")
-                appIcon: (stream && (stream.properties["application.icon_name"] || stream.iconName)) || "application-x-executable"
+                appIcon: {
+                    if (!stream) return "application-x-executable"
+                    const props = stream.properties || {}
+                    const clientProps = (stream.client && stream.client.properties) || {}
+                    
+                    return props["application.icon_name"]
+                        || clientProps["application.icon_name"]
+                        || stream.iconName
+                        || (stream.client && stream.client.iconName)
+                        || props["window.icon_name"]
+                        || clientProps["window.icon_name"]
+                        || props["media.icon_name"]
+                        || clientProps["media.icon_name"]
+                        || "application-x-executable"
+                }
                 volumePercent: stream && stream.hasVolume ? Math.round((stream.volume / PulseAudio.NormalVolume) * 100.0) : 0
                 muted: stream ? stream.muted : false
                 hasVolume: stream ? stream.hasVolume : true

@@ -38,13 +38,25 @@ PlasmoidItem {
         Layout.preferredWidth: Kirigami.Units.gridUnit * 20
         Layout.maximumWidth: Kirigami.Units.gridUnit * 24
 
-        // Altezza ancorata dinamicamente al contenuto della lista:
-        // Altezza minima = altezza master header (~68)
-        // Altezza desiderata = altezza reale del contenuto
-        // Altezza massima = 520 (oltre cui scatta lo scorrimento)
-        Layout.minimumHeight: Math.min(appsPage.contentHeight, 520)
-        Layout.preferredHeight: Math.min(appsPage.contentHeight, 520)
-        Layout.maximumHeight: 520
+        // Altezza ancorata dinamicamente al contenuto della lista.
+        // Tetto: 75% dello schermo disponibile (oltre scatta lo scrolling),
+        // con fallback basato sulle grid unit se il rect non è ancora valido.
+        readonly property int maxAvailableHeight: (root.availableScreenRect && root.availableScreenRect.height > 0)
+            ? Math.round(root.availableScreenRect.height * 0.75)
+            : (Kirigami.Units.gridUnit * 30)
+
+        readonly property int popupHeight: Math.min(appsPage.naturalHeight, maxAvailableHeight)
+
+        // AppletPopup salva popupWidth/popupHeight nel config dell'applet alla chiusura
+        // e, se li trova al caricamento, disabilita per sempre l'auto-sizing
+        // (m_sizeExplicitlySetFromConfig in appletpopup.cpp).
+        // updateMinSize()/updateMaxSize() però non sono soggetti a quel flag:
+        // pinnare min == max == popupHeight forza la finestra sulla dimensione
+        // del contenuto in entrambe le direzioni, anche dopo un riavvio di plasmashell.
+        Layout.minimumHeight: popupHeight
+        Layout.preferredHeight: popupHeight
+        Layout.maximumHeight: popupHeight
+        implicitHeight: popupHeight
 
         contentItem: AppsPage {
             id: appsPage
