@@ -11,7 +11,6 @@ This widget lives as a single icon on your panel. Clicking it expands a dropdown
 ## Audience Navigation
 
 - **Users** — [Features](#features) · [Installation](#installation) · [What It Does Not Do](#what-it-does-not-do) · [Translations](#translations)
-- **Developers & Packagers** — [Architecture & Requirements](#architecture--requirements) · [Development Testing](#development-testing)
 - **Legal & Governance** — [License](#license) · [Privacy](#privacy) · [Manifest](#manifest) · [Legal](#legal)
 
 ---
