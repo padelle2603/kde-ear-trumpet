@@ -1,0 +1,21 @@
+{
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "Padelle"
+            }
+        ],
+        "Category": "System Information",
+        "Description": "EarTrumpet-style volume mixer for KDE, native Breeze/Kirigami",
+        "Icon": "speaker",
+        "Id": "io.github.padelle.eartrumpet",
+        "Name": "kde-ear-trumpet",
+        "Version": "0.1.0",
+        "Website": "https://github.com/padelle/kde-ear-trumpet",
+        "BugReportUrl": "https://github.com/padelle/kde-ear-trumpet/issues",
+        "License": "GPL-3.0-or-later"
+    },
+    "X-Plasma-API-Minimum-Version": "6.0",
+    "KPackageStructure": "Plasma/Applet",
+    "X-Plasma-TranslationDomain": "plasma_applet_io.github.padelle.eartrumpet"
+}

@@ -1,0 +1,13 @@
+# OS & Editor artifacts
+.DS_Store
+*.swp
+*~
+*.bak
+
+# Temporary / build files
+*.log
+/build/
+
+# Internal agent directives
+AGENTS.md
+
