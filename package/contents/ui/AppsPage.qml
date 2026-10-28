@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls as Controls
 import org.kde.kitemmodels as KItemModels
+import org.kde.plasma.plasmoid
 import org.kde.plasma.private.volume
 import org.kde.plasma.components as PlasmaComponents3
 import org.kde.plasma.core as PlasmaCore
@@ -13,80 +14,85 @@ Item {
     readonly property SinkInputModel sinkInputModel: SinkInputModel {}
     readonly property SinkModel rawSinkModel: SinkModel {}
 
-    readonly property PulseObjectFilterModel hwSinkModel: PulseObjectFilterModel {
-        sourceModel: root.rawSinkModel
-        filterVirtualDevices: true
-    }
-
-    readonly property string targetHardwareSinkName: "alsa_output.pci-0000_10_00.6.analog-stereo"
+    // Configurazione sink preferito (vuoto = usa predefinito di sistema)
+    readonly property string configuredSinkName: Plasmoid.configuration.preferredSinkName || ""
 
     property var masterSink: null
 
-    function findMaster() {
-        // 1) Cerca il sink hardware Ryzen esatto
-        for (let i = 0; i < rawSinkModel.count; i++) {
+    function updateMasterSink() {
+        // 1) Se specificato nelle impostazioni dell'utente, cerca per nome esatto
+        if (configuredSinkName.length > 0) {
+            for (let i = 0; i < rawSinkModel.count; ++i) {
+                const idx = rawSinkModel.index(i, 0)
+                const obj = rawSinkModel.data(idx, rawSinkModel.role("PulseObject"))
+                if (obj && obj.name === configuredSinkName) {
+                    masterSink = obj
+                    return
+                }
+            }
+        }
+
+        // 2) Dispositivo in linea d'uscita predefinito di sistema
+        if (Server.defaultSink) {
+            masterSink = Server.defaultSink
+            return
+        }
+
+        // 3) PreferredDevice.sink
+        if (PreferredDevice.sink) {
+            masterSink = PreferredDevice.sink
+            return
+        }
+
+        // 4) Primo sink non virtuale
+        for (let i = 0; i < rawSinkModel.count; ++i) {
             const idx = rawSinkModel.index(i, 0)
             const obj = rawSinkModel.data(idx, rawSinkModel.role("PulseObject"))
-            if (obj && obj.name === targetHardwareSinkName) {
-                if (masterSink !== obj) {
-                    masterSink = obj
-                }
-                return true
+            if (obj && !obj.virtualDevice) {
+                masterSink = obj
+                return
             }
         }
-        // 2) Primo sink non virtuale
-        if (hwSinkModel.count > 0) {
-            const idx = hwSinkModel.index(0, 0)
-            const obj = hwSinkModel.data(idx, hwSinkModel.role("PulseObject"))
-            if (obj) {
-                if (masterSink !== obj) {
-                    masterSink = obj
-                }
-                return true
-            }
+
+        // 5) Fallback assoluto: primo sink qualunque
+        if (rawSinkModel.count > 0) {
+            const idx = rawSinkModel.index(0, 0)
+            masterSink = rawSinkModel.data(idx, rawSinkModel.role("PulseObject"))
+            return
         }
-        // 3) Fallback
-        if (PreferredDevice.sink) {
-            if (masterSink !== PreferredDevice.sink) {
-                masterSink = PreferredDevice.sink
-            }
-            return !!masterSink
-        }
-        return !!masterSink
+
+        masterSink = null
     }
 
-    Timer {
-        id: finder
-        interval: 50
-        running: true
-        repeat: true
-        triggeredOnStart: true
-        onTriggered: {
-            if (findMaster()) {
-                finder.stop()
-            }
-        }
+    Connections {
+        target: Server
+        function onDefaultSinkChanged() { updateMasterSink() }
     }
 
     Connections {
         target: PreferredDevice
-        function onSinkChanged() { findMaster() }
+        function onSinkChanged() { updateMasterSink() }
     }
 
     Connections {
         target: rawSinkModel
-        function onModelReset() { findMaster() }
-        function onRowsInserted() { findMaster() }
-        function onRowsRemoved() { findMaster() }
+        function onModelReset() { updateMasterSink() }
+        function onRowsInserted() { updateMasterSink() }
+        function onRowsRemoved() { updateMasterSink() }
+        function onDataChanged() { updateMasterSink() }
     }
 
-    // Sinks always have a volume; only streams may lack it (PulseAudioQt API)
-    readonly property int masterPercent: masterSink
-        ? Math.round((masterSink.volume / PulseAudio.NormalVolume) * 100.0)
-        : 0
+    Connections {
+        target: Plasmoid.configuration
+        function onPreferredSinkNameChanged() { updateMasterSink() }
+    }
+
+    Component.onCompleted: {
+        updateMasterSink()
+    }
+
     readonly property bool masterMuted: masterSink ? masterSink.muted : false
 
-    readonly property int appRowHeight: 56 + Kirigami.Units.smallSpacing
     readonly property int naturalHeight: masterHeader.implicitHeight
         + (divider.visible ? (divider.height + Kirigami.Units.smallSpacing) : 0)
         + (sinkInputModel.count > 0 ? (listView.contentHeight + Kirigami.Units.smallSpacing) : 0)
@@ -111,7 +117,7 @@ Item {
                 Kirigami.Icon {
                     Layout.preferredWidth: 28
                     Layout.preferredHeight: 28
-                    source: "audio-card"
+                    source: (masterSink && masterSink.iconName) ? masterSink.iconName : "audio-card"
                     opacity: masterMuted || !masterSink ? 0.5 : 1.0
                 }
 
@@ -121,69 +127,15 @@ Item {
 
                     PlasmaComponents3.Label {
                         Layout.fillWidth: true
-                        text: i18n("Master")
+                        text: masterSink ? (masterSink.description || masterSink.name || i18n("Master")) : i18n("Master")
                         font.bold: true
                         elide: Text.ElideRight
                         opacity: masterMuted || !masterSink ? 0.7 : 1.0
                     }
 
-                    RowLayout {
+                    VolumeSlider {
                         Layout.fillWidth: true
-                        spacing: Kirigami.Units.smallSpacing
-
-                        PlasmaComponents3.Slider {
-                            id: masterSlider
-
-                            readonly property var sink: root.masterSink
-
-                            Layout.fillWidth: true
-                            from: 0
-                            to: 100
-                            stepSize: 1
-                            enabled: sink && sink.volumeWritable
-
-                            // Bound directly to the real sink volume, as the official applet does
-                            value: sink ? Math.round((sink.volume / PulseAudio.NormalVolume) * 100.0) : 0
-
-                            onPressedChanged: {
-                                if (!pressed && sink) {
-                                    // Ripristina il binding al valore reale del sink dopo il drag
-                                    value = Qt.binding(function() {
-                                        if (!sink) return 0
-                                        return Math.round((sink.volume / PulseAudio.NormalVolume) * 100.0)
-                                    })
-                                }
-                            }
-
-                            onMoved: {
-                                if (sink && sink.volumeWritable) {
-                                    sink.volume = Math.round((value / 100.0) * PulseAudio.NormalVolume)
-                                    if (value === 0) {
-                                        sink.muted = true
-                                    } else if (sink.muted) {
-                                        sink.muted = false
-                                    }
-                                }
-                            }
-                        }
-
-                        PlasmaComponents3.Label {
-                            Layout.preferredWidth: 38
-                            horizontalAlignment: Text.AlignRight
-                            text: root.masterPercent + "%"
-                            font.pixelSize: PlasmaCore.Units.fontPixelSize * 0.9
-                            opacity: masterMuted || !masterSink ? 0.5 : 0.85
-                        }
-
-                        PlasmaComponents3.ToolButton {
-                            icon.name: masterMuted ? "audio-volume-muted" : "audio-volume-high"
-                            enabled: !!masterSink
-                            onClicked: {
-                                if (masterSink) {
-                                    masterSink.muted = !masterSink.muted
-                                }
-                            }
-                        }
+                        target: root.masterSink
                     }
                 }
             }
@@ -213,39 +165,26 @@ Item {
                 required property int index
                 required property var model
 
-                readonly property var stream: model.PulseObject
+                readonly property var streamObj: model.PulseObject
 
                 width: ListView.view ? ListView.view.width : 0
-                appName: (stream && (stream.properties["application.name"] || stream.name || stream.description)) || model.Name || i18n("Unknown App")
+                appName: (streamObj && (streamObj.properties["application.name"] || streamObj.name || streamObj.description)) || model.Name || i18n("Unknown App")
                 appIcon: {
-                    if (!stream) return "application-x-executable"
-                    const props = stream.properties || {}
-                    const clientProps = (stream.client && stream.client.properties) || {}
+                    if (!streamObj) return "application-x-executable"
+                    const props = streamObj.properties || {}
+                    const clientProps = (streamObj.client && streamObj.client.properties) || {}
                     
                     return props["application.icon_name"]
                         || clientProps["application.icon_name"]
-                        || stream.iconName
-                        || (stream.client && stream.client.iconName)
+                        || streamObj.iconName
+                        || (streamObj.client && streamObj.client.iconName)
                         || props["window.icon_name"]
                         || clientProps["window.icon_name"]
                         || props["media.icon_name"]
                         || clientProps["media.icon_name"]
                         || "application-x-executable"
                 }
-                volumePercent: stream && stream.hasVolume ? Math.round((stream.volume / PulseAudio.NormalVolume) * 100.0) : 0
-                muted: stream ? stream.muted : false
-                hasVolume: stream ? stream.hasVolume : true
-                corked: stream ? stream.corked : false
-
-                // Written on every movement (no debounce): volume follows the drag continuously
-                onUserVolumeChanged: (val) => {
-                    if (row.stream && row.stream.volumeWritable) {
-                        row.stream.volume = Math.round((val / 100.0) * PulseAudio.NormalVolume)
-                    }
-                }
-                onUserMuteToggled: () => {
-                    if (row.stream) row.stream.muted = !row.stream.muted
-                }
+                stream: streamObj
             }
 
             Controls.ScrollBar.vertical: Controls.ScrollBar {

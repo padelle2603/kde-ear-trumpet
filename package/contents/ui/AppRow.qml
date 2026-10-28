@@ -9,10 +9,7 @@ Item {
 
     property string appName: ""
     property string appIcon: ""
-    property int volumePercent: 50
-    property bool muted: false
-    property bool hasVolume: true
-    property bool corked: false
+    property var stream: null
 
     signal userVolumeChanged(int value)
     signal userMuteToggled()
@@ -29,7 +26,7 @@ Item {
             Layout.preferredWidth: 28
             Layout.preferredHeight: 28
             source: root.appIcon
-            opacity: root.muted || root.corked ? 0.5 : 1.0
+            opacity: (root.stream && (root.stream.muted || root.stream.corked)) ? 0.5 : 1.0
         }
 
         ColumnLayout {
@@ -40,45 +37,14 @@ Item {
                 Layout.fillWidth: true
                 text: root.appName
                 elide: Text.ElideRight
-                opacity: root.muted || root.corked ? 0.7 : 1.0
+                opacity: (root.stream && (root.stream.muted || root.stream.corked)) ? 0.7 : 1.0
             }
 
-            RowLayout {
+            VolumeSlider {
                 Layout.fillWidth: true
-                spacing: PlasmaCore.Units.smallSpacing
-
-                PlasmaComponents3.Slider {
-                    id: slider
-                    Layout.fillWidth: true
-                    from: 0
-                    to: 100
-                    stepSize: 1
-                    value: root.volumePercent
-                    enabled: root.hasVolume
-                    onMoved: {
-                        root.userVolumeChanged(Math.round(slider.value))
-                    }
-                    onPressedChanged: {
-                        if (!pressed) {
-                            // Re-bind to the real stream volume once the drag ends
-                            value = Qt.binding(function() { return root.volumePercent })
-                        }
-                    }
-                }
-
-                PlasmaComponents3.Label {
-                    Layout.preferredWidth: 38
-                    horizontalAlignment: Text.AlignRight
-                    text: root.volumePercent + "%"
-                    font.pixelSize: PlasmaCore.Units.fontPixelSize * 0.9
-                    opacity: root.muted || root.corked ? 0.5 : 0.85
-                }
-
-                PlasmaComponents3.ToolButton {
-                    icon.name: root.muted ? "audio-volume-muted" : "audio-volume-high"
-                    onClicked: root.userMuteToggled()
-                    enabled: root.hasVolume
-                }
+                target: root.stream
+                onMoved: (val) => root.userVolumeChanged(val)
+                onMuteToggled: () => root.userMuteToggled()
             }
         }
     }

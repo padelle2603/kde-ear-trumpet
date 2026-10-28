@@ -63,16 +63,13 @@ PlasmoidItem {
         }
     }
 
-    // Adds "Configure Audio Devices…" to the plasmoid context menu (same as plasma-pa)
-    PlasmaCore.Action {
-        id: configureAudioDevicesAction
-        text: i18n("&Configure Audio Devices…")
-        icon.name: "configure"
-        visible: KConfig.KAuthorized.authorizeControlModule("kcm_pulseaudio")
-        onTriggered: KCMUtils.KCMLauncher.openSystemSettings("kcm_pulseaudio")
-    }
-
-    Component.onCompleted: {
-        Plasmoid.setInternalAction("configure", configureAudioDevicesAction)
-    }
+    // Azione personalizzata nel menu contestuale per aprire le impostazioni audio di sistema
+    Plasmoid.contextualActions: [
+        PlasmaCore.Action {
+            text: i18n("&Configure Audio Devices…")
+            icon.name: "preferences-desktop-sound"
+            visible: KConfig.KAuthorized.authorizeControlModule("kcm_pulseaudio")
+            onTriggered: KCMUtils.KCMLauncher.openSystemSettings("kcm_pulseaudio")
+        }
+    ]
 }

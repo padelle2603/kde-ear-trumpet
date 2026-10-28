@@ -9,10 +9,31 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 
 msgid "Master"
-msgstr "Master"
+msgstr "Principale"
 
 msgid "Unknown App"
-msgstr "App sconosciuta"
+msgstr "Applicazione sconosciuta"
 
 msgid "&Configure Audio Devices…"
 msgstr "&Configura dispositivi audio…"
+
+msgid "General"
+msgstr "Generale"
+
+msgid "Master Output Device:"
+msgstr "Dispositivo d'uscita principale:"
+
+msgid "System Default (Automatic)"
+msgstr "Predefinito di sistema (automatico)"
+
+msgid "Unknown"
+msgstr "Sconosciuto"
+
+msgid "Scroll Step:"
+msgstr "Passo rotellina (scroll):"
+
+msgid "Show Virtual Devices:"
+msgstr "Mostra dispositivi virtuali:"
+
+msgid "Include virtual sinks (e.g. Easy Effects)"
+msgstr "Includi dispositivi virtuali (es. Easy Effects)"
