@@ -6,12 +6,14 @@ An EarTrumpet-style audio mixer plasmoid for KDE Plasma 6 that combines active a
 
 This widget lives as a single icon on your panel. Clicking it expands a dropdown showing the system master volume and every application currently playing audio, with real-time continuous sliders, mute controls, and responsive sizing.
 
+![Screenshot](img/screenshot.png)
+
 ---
 
 ## Audience Navigation
 
 - **Users** — [Features](#features) · [Installation](#installation) · [What It Does Not Do](#what-it-does-not-do) · [Translations](#translations)
-- **Legal & Governance** — [License](#license) · [Privacy](#privacy) · [Manifest](#manifest) · [Legal](#legal)
+- **Legal & Governance** — [License](#documents) · [Privacy](#documents) · [Manifest](#documents) · [Legal](#documents)
 
 ---
 
