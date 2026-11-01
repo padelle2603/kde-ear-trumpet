@@ -22,7 +22,8 @@ This widget lives as a single icon on your panel. Clicking it expands a dropdown
 - **Single unified view.** Master hardware volume and active application streams appear together in one vertical list without tabs.
 - **Dynamic content sizing.** The popup dimensions hug the exact number of active apps instead of using a rigid predefined window height.
 - **Continuous real-time control.** Volume adjustments write directly to the audio subsystem without debounce pauses or delayed steps.
-- **Hardware-aware master control.** Intelligently binds to the physical audio output sink, even when virtual processing sinks (like EasyEffects) are present.
+- **Hardware-aware master control.** Intelligently binds to the physical audio output sink, with clear visual indication when controlling virtual processing sinks (like EasyEffects).
+- **Responsive panel icon & tooltip.** Shows dynamic speaker volume icons and precise percentage tooltips.
 - **Native Breeze styling.** Inherits colors, fonts, geometry, and icons from your active Plasma theme in both light and dark modes.
 - **Quick system settings access.** Right-clicking the plasmoid provides a direct shortcut to KDE's Audio System Settings module (`kcm_pulseaudio`).
 

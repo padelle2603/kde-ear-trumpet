@@ -29,11 +29,21 @@ msgstr "Predefinito di sistema (automatico)"
 msgid "Unknown"
 msgstr "Sconosciuto"
 
-msgid "Scroll Step:"
-msgstr "Passo rotellina (scroll):"
-
 msgid "Show Virtual Devices:"
 msgstr "Mostra dispositivi virtuali:"
 
 msgid "Include virtual sinks (e.g. Easy Effects)"
 msgstr "Includi dispositivi virtuali (es. Easy Effects)"
+
+msgid "Virtual"
+msgstr "Virtuale"
+
+msgid "Audio Volume"
+msgstr "Volume audio"
+
+msgid "%1: Muted"
+msgstr "%1: Muto"
+
+msgid "%1: %2%"
+msgstr "%1: %2%"
+

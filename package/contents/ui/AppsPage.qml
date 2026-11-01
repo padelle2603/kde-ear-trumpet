@@ -16,9 +16,20 @@ Item {
 
     // Configurazione sink preferito (vuoto = usa predefinito di sistema)
     readonly property string configuredSinkName: Plasmoid.configuration.preferredSinkName || ""
+    readonly property bool showVirtualDevices: Plasmoid.configuration.showVirtualDevices || false
 
     property var masterSink: null
 
+    /**
+     * Determines which output sink should be treated as the master volume sink.
+     * Priority chain:
+     * 1) User-configured sink by name (if set in widget settings)
+     * 2) System default sink (Server.defaultSink) — only if non-virtual or showVirtualDevices is enabled
+     * 3) PreferredDevice.sink — only if non-virtual or showVirtualDevices is enabled
+     * 4) First non-virtual physical sink found in rawSinkModel
+     * 5) Fallback: Server.defaultSink or PreferredDevice.sink even if virtual
+     * 6) Absolute fallback: first available sink in rawSinkModel regardless of type
+     */
     function updateMasterSink() {
         // 1) Se specificato nelle impostazioni dell'utente, cerca per nome esatto
         if (configuredSinkName.length > 0) {
@@ -32,19 +43,26 @@ Item {
             }
         }
 
+        // Helper per verificare se un sink è accettabile rispetto al filtro virtual devices
+        function isSinkAcceptable(sink) {
+            if (!sink) return false
+            if (showVirtualDevices) return true
+            return !sink.virtualDevice
+        }
+
         // 2) Dispositivo in linea d'uscita predefinito di sistema
-        if (Server.defaultSink) {
+        if (Server.defaultSink && isSinkAcceptable(Server.defaultSink)) {
             masterSink = Server.defaultSink
             return
         }
 
         // 3) PreferredDevice.sink
-        if (PreferredDevice.sink) {
+        if (PreferredDevice.sink && isSinkAcceptable(PreferredDevice.sink)) {
             masterSink = PreferredDevice.sink
             return
         }
 
-        // 4) Primo sink non virtuale
+        // 4) Primo sink non virtuale nel modello
         for (let i = 0; i < rawSinkModel.count; ++i) {
             const idx = rawSinkModel.index(i, 0)
             const obj = rawSinkModel.data(idx, rawSinkModel.role("PulseObject"))
@@ -54,7 +72,18 @@ Item {
             }
         }
 
-        // 5) Fallback assoluto: primo sink qualunque
+        // 5) Fallback se tutti i sink sono virtuali o nessun fisico trovato:
+        // accetta Server.defaultSink o PreferredDevice.sink
+        if (Server.defaultSink) {
+            masterSink = Server.defaultSink
+            return
+        }
+        if (PreferredDevice.sink) {
+            masterSink = PreferredDevice.sink
+            return
+        }
+
+        // 6) Fallback assoluto: primo sink qualunque
         if (rawSinkModel.count > 0) {
             const idx = rawSinkModel.index(0, 0)
             masterSink = rawSinkModel.data(idx, rawSinkModel.role("PulseObject"))
@@ -85,6 +114,7 @@ Item {
     Connections {
         target: Plasmoid.configuration
         function onPreferredSinkNameChanged() { updateMasterSink() }
+        function onShowVirtualDevicesChanged() { updateMasterSink() }
     }
 
     Component.onCompleted: {
@@ -125,12 +155,34 @@ Item {
                     Layout.fillWidth: true
                     spacing: 2
 
-                    PlasmaComponents3.Label {
+                    RowLayout {
                         Layout.fillWidth: true
-                        text: masterSink ? (masterSink.description || masterSink.name || i18n("Master")) : i18n("Master")
-                        font.bold: true
-                        elide: Text.ElideRight
-                        opacity: masterMuted || !masterSink ? 0.7 : 1.0
+                        spacing: Kirigami.Units.smallSpacing
+
+                        PlasmaComponents3.Label {
+                            Layout.fillWidth: true
+                            text: masterSink ? (masterSink.description || masterSink.name || i18n("Master")) : i18n("Master")
+                            font.bold: true
+                            elide: Text.ElideRight
+                            opacity: masterMuted || !masterSink ? 0.7 : 1.0
+                        }
+
+                        Rectangle {
+                            visible: !!(masterSink && masterSink.virtualDevice)
+                            implicitHeight: Math.round(Kirigami.Units.gridUnit * 0.9)
+                            implicitWidth: virtualLabel.implicitWidth + (Kirigami.Units.smallSpacing * 2)
+                            radius: Kirigami.Units.cornerRadius
+                            color: Kirigami.Theme.highlightColor
+
+                            PlasmaComponents3.Label {
+                                id: virtualLabel
+                                anchors.centerIn: parent
+                                text: i18n("Virtual")
+                                font.pointSize: Kirigami.Theme.smallFont.pointSize
+                                font.bold: true
+                                color: "#FFFFFF"
+                            }
+                        }
                     }
 
                     VolumeSlider {

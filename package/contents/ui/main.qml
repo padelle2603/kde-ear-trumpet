@@ -3,6 +3,8 @@ import QtQuick.Layouts
 import org.kde.plasma.plasmoid
 import org.kde.plasma.extras as PlasmaExtras
 import org.kde.plasma.core as PlasmaCore
+import org.kde.plasma.components as PlasmaComponents3
+import org.kde.plasma.private.volume
 import org.kde.kirigami as Kirigami
 import org.kde.kcmutils as KCMUtils
 import org.kde.config as KConfig
@@ -21,11 +23,36 @@ PlasmoidItem {
         implicitWidth: Kirigami.Units.iconSizes.smallMedium
         implicitHeight: Kirigami.Units.iconSizes.smallMedium
 
+        acceptedButtons: Qt.LeftButton
         onClicked: root.expanded = !root.expanded
+
+        readonly property var masterSink: appsPage ? appsPage.masterSink : null
+        readonly property int masterVolume: masterSink ? Math.round((masterSink.volume / PulseAudio.NormalVolume) * 100.0) : 0
+        readonly property bool masterMuted: masterSink ? masterSink.muted : false
 
         Kirigami.Icon {
             anchors.fill: parent
-            source: "speaker"
+            source: {
+                if (!compactRoot.masterSink) return "speaker"
+                if (compactRoot.masterMuted) return "audio-volume-muted"
+                if (compactRoot.masterVolume <= 0) return "audio-volume-muted"
+                if (compactRoot.masterVolume < 33) return "audio-volume-low"
+                if (compactRoot.masterVolume < 66) return "audio-volume-medium"
+                return "audio-volume-high"
+            }
+        }
+
+        PlasmaComponents3.ToolTip {
+            text: {
+                if (!compactRoot.masterSink) {
+                    return i18n("Audio Volume")
+                }
+                const name = compactRoot.masterSink.description || compactRoot.masterSink.name || i18n("Master")
+                if (compactRoot.masterMuted) {
+                    return i18n("%1: Muted", name)
+                }
+                return i18n("%1: %2%", name, compactRoot.masterVolume)
+            }
         }
     }
 

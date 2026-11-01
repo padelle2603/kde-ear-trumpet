@@ -9,7 +9,6 @@ import org.kde.kcmutils as KCM
 KCM.SimpleKCM {
     id: root
 
-    property alias cfg_scrollStep: scrollStepSpin.value
     property alias cfg_showVirtualDevices: showVirtualSwitch.checked
     property string cfg_preferredSinkName: ""
 
@@ -75,13 +74,6 @@ KCM.SimpleKCM {
             }
 
             Component.onCompleted: reload()
-        }
-
-        PlasmaComponents3.SpinBox {
-            id: scrollStepSpin
-            Kirigami.FormData.label: i18n("Scroll Step:")
-            from: 1
-            to: 25
         }
 
         PlasmaComponents3.Switch {
