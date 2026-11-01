@@ -3,6 +3,10 @@ set -euo pipefail
 
 # Scripts/check.sh - Quality gate & linting for kde-ear-trumpet
 
+# Lavora sempre dalla radice del repo, ovunque venga lanciato lo script
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$REPO_ROOT"
+
 echo "==> Running qmllint on QML files..."
 if command -v qmllint &> /dev/null; then
     qmllint package/contents/ui/*.qml package/contents/config/*.qml
