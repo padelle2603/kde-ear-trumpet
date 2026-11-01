@@ -16,10 +16,6 @@ In the Linux ecosystem, the official KDE Plasma audio widget (`plasma-pa`) is fe
 4. **Dynamic Geometry:** The popup footprint hugs its actual content instead of enforcing arbitrary fixed dimensions. With fewer apps playing, the popup stays minimal; with many, it provides smooth scrolling.
 5. **Full Privacy by Default:** Local audio socket communication only. Zero network requests, zero telemetry.
 
-## Maintainer
-
-Maintained by Paolo D'Elia ([@padelle](https://github.com/padelle)).
-
 ## Cross-References
 
 - [README.md](README.md) — Technical details, installation, and usage.
