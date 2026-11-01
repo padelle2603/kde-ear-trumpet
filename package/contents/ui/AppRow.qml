@@ -25,6 +25,7 @@ Item {
             Layout.preferredWidth: 28
             Layout.preferredHeight: 28
             source: root.appIcon
+            fallback: "application-x-executable"
             opacity: (root.stream && (root.stream.muted || root.stream.corked)) ? 0.5 : 1.0
         }
 

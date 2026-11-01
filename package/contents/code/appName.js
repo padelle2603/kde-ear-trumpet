@@ -26,6 +26,36 @@ function isBadBinary(bin) {
     return /^(pipewire|pulseaudio|systemd|wireplumber|apprun)$/i.test(base)
 }
 
+function isGenericBinary(bin) {
+    if (!bin) return true
+    const base = bin.split("/").pop().toLowerCase()
+    return /^(python[0-9.]*|node|nodejs|java|electron[0-9.]*|apprun|bash|sh|zsh|perl|ruby)$/i.test(base)
+}
+
+function isBadAppName(name) {
+    if (!name || typeof name !== "string") return true
+    const bad = /^(WEBRTC|VoiceEngine|cpal.*|pulseaudio.*|SDL.*|GStreamer|OpenAL|ALSA|libav|ffmpeg|playStream|Playback|Wine.*Preloader|wineserver|wine.*)$/i
+    return bad.test(name.trim())
+}
+
+// Wine/Proton espone sempre lo stesso binario (wine64-preloader, wineserver,
+// proton) per ogni gioco: il nome reale va cercato altrove.
+function isWineProcess(binary) {
+    if (!binary || typeof binary !== "string") return false
+    const b = binary.toLowerCase()
+    return b.includes("wine") || b.includes("proton")
+}
+
+// Estrae "Hollow Knight" da "C:\\Games\\Hollow Knight\\hollow_knight.exe"
+// o da "HAPPY PROPAGANDA.exe". Ritorna "" se non è un .exe.
+function extractExeName(value) {
+    if (!value || typeof value !== "string") return ""
+    const base = value.split(/[\\/]/).pop().trim()
+    const match = base.match(/^(.+)\.exe$/i)
+    if (!match) return ""
+    return humanizeBinary(match[1])
+}
+
 function resolveName(streamObj, model) {
     if (!streamObj) {
         return (model && model.Name) ? model.Name : "Audio Stream"
@@ -40,6 +70,31 @@ function resolveName(streamObj, model) {
         binary = ""
     }
 
+    // 2. Giochi Wine/Proton: il binario è sempre wine64-preloader & co.,
+    //    ma il nome del gioco è nel .exe esposto da PipeWire.
+    if (isWineProcess(binary)) {
+        const exeName = extractExeName(props["application.name"])
+            || extractExeName(clientProps["application.name"])
+            || extractExeName(props["node.name"])
+            || extractExeName(props["device.description"])
+            || extractExeName(streamObj.description)
+            || extractExeName(streamObj.name)
+        if (exeName) {
+            return exeName
+        }
+        // Nessun .exe esposto: meglio il fallback su application.name che
+        // mostrare "Wine64 Preloader" per ogni gioco.
+        binary = ""
+    }
+
+    // Se il binario è generico (python, node, electron...), application.name ha la precedenza
+    if (binary && isGenericBinary(binary)) {
+        const appName = props["application.name"] || clientProps["application.name"] || streamObj.name
+        if (appName && !isBadAppName(appName)) {
+            return extractExeName(appName) || humanizeBinary(appName)
+        }
+    }
+
     if (binary) {
         const humanized = humanizeBinary(binary)
         if (humanized.length > 0) {
@@ -47,17 +102,17 @@ function resolveName(streamObj, model) {
         }
     }
 
-    // 2. application.name se non corrisponde a pattern rumorosi / interni
+    // 3. application.name se non corrisponde a pattern rumorosi / interni
     const appName = props["application.name"] || clientProps["application.name"] || streamObj.name
     if (appName) {
         const cleaned = appName.trim()
-        const badPatterns = /^(WEBRTC|VoiceEngine|cpal.*|pulseaudio.*|SDL.*|GStreamer|OpenAL|ALSA|libav|ffmpeg|playStream|Playback)$/i
+        const badPatterns = /^(WEBRTC|VoiceEngine|cpal.*|pulseaudio.*|SDL.*|GStreamer|OpenAL|ALSA|libav|ffmpeg|playStream|Playback|Wine.*Preloader|wineserver|wine.*)$/i
         if (cleaned.length > 0 && !badPatterns.test(cleaned)) {
-            return cleaned
+            return extractExeName(cleaned) || cleaned
         }
     }
 
-    // 3. streamObj.description o client.description
+    // 4. streamObj.description o client.description
     if (streamObj.description && streamObj.description.trim().length > 0) {
         return streamObj.description
     }
@@ -66,7 +121,7 @@ function resolveName(streamObj, model) {
         return streamObj.client.description
     }
 
-    // 4. Fallback: cerca il PID (dalle proprietà del processo, del client o dal nome tipo cpal-pulseaudio-121412)
+    // 5. Fallback: cerca il PID (dalle proprietà del processo, del client o dal nome tipo cpal-pulseaudio-121412)
     let pid = props["application.process.id"] || clientProps["application.process.id"]
     if (!pid && appName) {
         const match = appName.match(/-(\d+)$/)
@@ -92,6 +147,7 @@ function resolveIcon(streamObj) {
     const props = streamObj.properties || {}
     const clientProps = (streamObj.client && streamObj.client.properties) || {}
 
+    // 1. Icona esplicita passata da PipeWire / client
     const directIcon = props["application.icon_name"]
         || clientProps["application.icon_name"]
         || streamObj.iconName
@@ -102,10 +158,40 @@ function resolveIcon(streamObj) {
         || clientProps["media.icon_name"]
 
     if (directIcon && directIcon.trim().length > 0) {
-        return directIcon
+        return directIcon.trim()
     }
 
     let binary = props["application.process.binary"] || clientProps["application.process.binary"]
+    const hasExe = extractExeName(props["application.name"])
+        || extractExeName(clientProps["application.name"])
+        || extractExeName(props["node.name"])
+        || extractExeName(props["device.description"])
+        || extractExeName(streamObj.description)
+        || extractExeName(streamObj.name)
+
+    // 2. Giochi Wine/Proton: icona di gioco nativa Breeze/Plasma
+    if (isWineProcess(binary) || hasExe) {
+        return "applications-games"
+    }
+
+    // 3. Binario nativo concreto (es. Discord, vlc, mpv, kitty, kate)
+    if (binary && !isBadBinary(binary) && !isGenericBinary(binary)) {
+        let base = binary.split("/").pop().replace(/\.(AppImage|bin|desktop)$/i, "").toLowerCase()
+        if (base.length > 0) {
+            return base
+        }
+    }
+
+    // 4. Per app avviate da interpreti/wrapper (es. python3 Photocraft, electron Spotify)
+    const appName = props["application.name"] || clientProps["application.name"] || streamObj.name
+    if (appName && !isBadAppName(appName)) {
+        let clean = appName.trim().toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9._-]/g, "")
+        if (clean.length > 0) {
+            return clean
+        }
+    }
+
+    // 5. Fallback sul binario generico (es. python3 o electron) se presente
     if (binary && !isBadBinary(binary)) {
         let base = binary.split("/").pop().replace(/\.(AppImage|bin|desktop)$/i, "").toLowerCase()
         if (base.length > 0) {
