@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
 import org.kde.plasma.components as PlasmaComponents3
-import org.kde.plasma.core as PlasmaCore
 import org.kde.kirigami as Kirigami
 
 Item {
@@ -19,8 +18,8 @@ Item {
 
     RowLayout {
         anchors.fill: parent
-        anchors.margins: PlasmaCore.Units.smallSpacing
-        spacing: PlasmaCore.Units.smallSpacing
+        anchors.margins: Kirigami.Units.smallSpacing
+        spacing: Kirigami.Units.smallSpacing
 
         Kirigami.Icon {
             Layout.preferredWidth: 28

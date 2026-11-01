@@ -5,8 +5,8 @@ import org.kde.kitemmodels as KItemModels
 import org.kde.plasma.plasmoid
 import org.kde.plasma.private.volume
 import org.kde.plasma.components as PlasmaComponents3
-import org.kde.plasma.core as PlasmaCore
 import org.kde.kirigami as Kirigami
+import "../code/appName.js" as AppName
 
 Item {
     id: root
@@ -147,7 +147,7 @@ Item {
             Layout.leftMargin: Kirigami.Units.smallSpacing
             Layout.rightMargin: Kirigami.Units.smallSpacing
             height: 1
-            color: PlasmaCore.ColorScope.textColor
+            color: Kirigami.Theme.textColor
             opacity: 0.15
             visible: sinkInputModel.count > 0
         }
@@ -168,22 +168,8 @@ Item {
                 readonly property var streamObj: model.PulseObject
 
                 width: ListView.view ? ListView.view.width : 0
-                appName: (streamObj && (streamObj.properties["application.name"] || streamObj.name || streamObj.description)) || model.Name || i18n("Unknown App")
-                appIcon: {
-                    if (!streamObj) return "application-x-executable"
-                    const props = streamObj.properties || {}
-                    const clientProps = (streamObj.client && streamObj.client.properties) || {}
-                    
-                    return props["application.icon_name"]
-                        || clientProps["application.icon_name"]
-                        || streamObj.iconName
-                        || (streamObj.client && streamObj.client.iconName)
-                        || props["window.icon_name"]
-                        || clientProps["window.icon_name"]
-                        || props["media.icon_name"]
-                        || clientProps["media.icon_name"]
-                        || "application-x-executable"
-                }
+                appName: AppName.resolveName(streamObj, model)
+                appIcon: AppName.resolveIcon(streamObj)
                 stream: streamObj
             }
 

@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import org.kde.plasma.components as PlasmaComponents3
-import org.kde.plasma.core as PlasmaCore
+import org.kde.kirigami as Kirigami
 import org.kde.plasma.private.volume
 
 RowLayout {
@@ -17,7 +17,7 @@ RowLayout {
     signal moved(int val)
     signal muteToggled()
 
-    spacing: PlasmaCore.Units.smallSpacing
+    spacing: Kirigami.Units.smallSpacing
 
     PlasmaComponents3.Slider {
         id: slider
@@ -55,7 +55,7 @@ RowLayout {
         Layout.preferredWidth: root.labelWidth
         horizontalAlignment: Text.AlignRight
         text: root.value + "%"
-        font.pixelSize: PlasmaCore.Units.fontPixelSize * 0.9
+        font.pointSize: Kirigami.Theme.defaultFont.pointSize * 0.9
         opacity: root.muted || root.corked || !root.target ? 0.5 : 0.85
     }
 
