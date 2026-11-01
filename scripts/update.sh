@@ -3,6 +3,10 @@ set -euo pipefail
 
 # Scripts/update.sh - Check for new version on GitHub, pull, install and restart
 
+# Ottieni la directory radice del repository indipendentemente da dove viene lanciato lo script
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$REPO_ROOT"
+
 echo "==> Fetching latest changes from remote (origin/main)..."
 git fetch origin main
 
